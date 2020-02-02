@@ -1,6 +1,6 @@
 /*
  ISY-JS
- 
+
  See README.md for details.
 */
 
@@ -24,7 +24,7 @@ function ISYChangeHandler(isy,device) {
 module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  types = homebridge.hapLegacyTypes;  
+  types = homebridge.hapLegacyTypes;
   homebridge.registerPlatform("homebridge-isy-js", "isy-js", ISYPlatform);
 }
 
@@ -52,7 +52,7 @@ ISYPlatform.prototype.logger = function(msg) {
 	}
 }
 
-// Checks the device against the configuration to see if it should be ignored. 
+// Checks the device against the configuration to see if it should be ignored.
 ISYPlatform.prototype.shouldIgnore = function(device) {
 	var deviceAddress = device.address;
 	if(device.deviceType==this.isy.DEVICE_TYPE_SCENE) {
@@ -149,7 +149,7 @@ ISYPlatform.prototype.renameDeviceIfNeeded = function(device) {
 ISYPlatform.prototype.accessories = function(callback) {
 	var that = this;
 	this.isy.initialize(function() {
-		var results = [];		
+		var results = [];
 		var deviceList = that.isy.getDeviceList();
 		for(var index = 0; index < deviceList.length; index++) {
 			var device = deviceList[index];
@@ -204,7 +204,7 @@ ISYPlatform.prototype.accessories = function(callback) {
             }
 		}
 		that.logger("ISYPLATFORM: Filtered device has: "+results.length+" devices");
-		callback(results);		
+		callback(results);
 	});
 }
 
@@ -216,15 +216,15 @@ function ISYAccessoryBaseSetup(accessory,log,device) {
 	accessory.log = log;
 	accessory.device = device;
 	accessory.address = device.address;
-	accessory.name = device.name;	
+	accessory.name = device.name;
 	accessory.uuid_base = device.isy.address+":"+device.address;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// FANS - ISYFanAccessory 
-// Implemetnts the fan service for an isy fan device. 
+// FANS - ISYFanAccessory
+// Implemetnts the fan service for an isy fan device.
 
-// Constructs a fan accessory object. device is the isy-js device object and log is the logger. 
+// Constructs a fan accessory object. device is the isy-js device object and log is the logger.
 function ISYFanAccessory(log,device) {
 	ISYAccessoryBaseSetup(this,log,device);
 }
@@ -235,8 +235,8 @@ ISYFanAccessory.prototype.identify = function(callback) {
 }
 
 // Translates the fan speed as an isy-js string into the corresponding homekit constant level.
-// Homekit doesn't have steps for the fan speed and needs to have a value from 0 to 100. We 
-// split the range into 4 steps and map them to the 4 isy-js levels. 
+// Homekit doesn't have steps for the fan speed and needs to have a value from 0 to 100. We
+// split the range into 4 steps and map them to the 4 isy-js levels.
 ISYFanAccessory.prototype.translateFanSpeedToHK = function(fanSpeed) {
 	if(fanSpeed == this.device.FAN_OFF) {
 		return 0;
@@ -253,7 +253,7 @@ ISYFanAccessory.prototype.translateFanSpeedToHK = function(fanSpeed) {
 }
 
 // Translates the fan level from homebridge into the isy-js level. Maps from the 0-100
-// to the four isy-js fan speed levels. 
+// to the four isy-js fan speed levels.
 ISYFanAccessory.prototype.translateHKToFanSpeed = function(fanStateHK) {
 	if(fanStateHK == 0) {
 		return this.device.FAN_OFF;
@@ -282,7 +282,7 @@ ISYFanAccessory.prototype.setFanRotationSpeed = function(fanStateHK,callback) {
 	this.log("FAN: "+this.device.name+" Sending command to set fan state to: "+newFanState);
 	if(newFanState != this.device.getCurrentFanState()) {
 		this.device.sendFanCommand(newFanState, function(result) {
-			callback();		
+			callback();
 		});
 	} else {
 		this.log("FAN: "+this.device.name+" Fan command does not change actual speed");
@@ -301,7 +301,7 @@ ISYFanAccessory.prototype.getFanOnState = function(callback) {
 	callback(null,this.getIsFanOn());
 }
 
-// Sets the fan state based on the value of the On characteristic. Default to Medium for on. 
+// Sets the fan state based on the value of the On characteristic. Default to Medium for on.
 ISYFanAccessory.prototype.setFanOnState = function(onState,callback) {
 	this.log( "FAN: "+this.device.name+" Setting fan on state to: "+onState+" Device says: "+this.device.getCurrentFanState());
 	if(onState != this.getIsFanOn()) {
@@ -315,7 +315,7 @@ ISYFanAccessory.prototype.setFanOnState = function(onState,callback) {
 	} else {
 		this.log("FAN: "+this.device.name+" Fan command does not change actual state");
 		callback();
-	} 
+	}
 }
 
 // Mirrors change in the state of the underlying isj-js device object.
@@ -323,42 +323,42 @@ ISYFanAccessory.prototype.handleExternalChange = function() {
 	this.log( "FAN: "+this.device.name+" Incoming external change. Device says: "+this.device.getCurrentFanState());
 	this.fanService
 		.setCharacteristic(Characteristic.On, this.getIsFanOn());
-		
+
 	this.fanService
-		.setCharacteristic(Characteristic.RotationSpeed, this.translateFanSpeedToHK(this.device.getCurrentFanState()));		
+		.setCharacteristic(Characteristic.RotationSpeed, this.translateFanSpeedToHK(this.device.getCurrentFanState()));
 }
 
-// Returns the services supported by the fan device. 
+// Returns the services supported by the fan device.
 ISYFanAccessory.prototype.getServices = function() {
 	var informationService = new Service.AccessoryInformation();
-	
+
 	informationService
       .setCharacteristic(Characteristic.Manufacturer, "SmartHome")
       .setCharacteristic(Characteristic.Model, this.device.deviceFriendlyName)
-      .setCharacteristic(Characteristic.SerialNumber, this.device.address);	
-	  
+      .setCharacteristic(Characteristic.SerialNumber, this.device.address);
+
 	var fanService = new Service.Fan();
-	
+
 	this.fanService = fanService;
-	this.informationService = informationService;	
-    
+	this.informationService = informationService;
+
     fanService
       .getCharacteristic(Characteristic.On)
       .on('set', this.setFanOnState.bind(this));
-	  
+
 	fanService
 	  .getCharacteristic(Characteristic.On)
 	  .on('get', this.getFanOnState.bind(this));
-	  
+
 	fanService
 	  .addCharacteristic(Characteristic.RotationSpeed)
-	  .on('get', this.getFanRotationSpeed.bind(this));	  
-  
+	  .on('get', this.getFanRotationSpeed.bind(this));
+
 	fanService
-	  .getCharacteristic(Characteristic.RotationSpeed)	
-	  .on('set', this.setFanRotationSpeed.bind(this));	
-    
-    return [informationService, fanService];	
+	  .getCharacteristic(Characteristic.RotationSpeed)
+	  .on('set', this.setFanRotationSpeed.bind(this));
+
+    return [informationService, fanService];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -381,7 +381,7 @@ ISYOutletAccessory.prototype.setOutletState = function(outletState,callback) {
 	this.log("OUTLET: "+this.device.name+" Sending command to set outlet state to: "+outletState);
 	if(outletState != this.device.getCurrentOutletState()) {
 		this.device.sendOutletCommand(outletState, function(result) {
-			callback();		
+			callback();
 		});
 	} else {
 		callback();
@@ -408,35 +408,35 @@ ISYOutletAccessory.prototype.handleExternalChange = function() {
 // Returns the set of services supported by this object.
 ISYOutletAccessory.prototype.getServices = function() {
 	var informationService = new Service.AccessoryInformation();
-	
+
 	informationService
       .setCharacteristic(Characteristic.Manufacturer, "SmartHome")
       .setCharacteristic(Characteristic.Model, this.device.deviceFriendlyName)
-      .setCharacteristic(Characteristic.SerialNumber, this.device.address);	
-	  
+      .setCharacteristic(Characteristic.SerialNumber, this.device.address);
+
 	var outletService = new Service.Outlet();
-	
+
 	this.outletService = outletService;
-	this.informationService = informationService;	
-    
+	this.informationService = informationService;
+
     outletService
       .getCharacteristic(Characteristic.On)
       .on('set', this.setOutletState.bind(this));
-	  
+
 	outletService
 	  .getCharacteristic(Characteristic.On)
 	  .on('get', this.getOutletState.bind(this));
-	  
+
 	outletService
 	  .getCharacteristic(Characteristic.OutletInUse)
 	  .on('get', this.getOutletInUseState.bind(this));
-    
-    return [informationService, outletService];	
+
+    return [informationService, outletService];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // LOCKS - ISYLockAccessory
-// Implements the lock service for isy-js devices. 
+// Implements the lock service for isy-js devices.
 
 // Constructs a lock accessory. log = homebridge logger, device = isy-js device object being wrapped
 function ISYLockAccessory(log,device) {
@@ -454,7 +454,7 @@ ISYLockAccessory.prototype.setTargetLockState = function(lockState,callback) {
 	if(lockState != this.getDeviceCurrentStateAsHK()) {
 		var targetLockValue = (lockState == 0) ? false : true;
 		this.device.sendLockCommand(targetLockValue, function(result) {
-			callback();		
+			callback();
 		});
 	} else {
 		callback();
@@ -487,36 +487,36 @@ ISYLockAccessory.prototype.handleExternalChange = function() {
 // Returns the set of services supported by this object.
 ISYLockAccessory.prototype.getServices = function() {
 	var informationService = new Service.AccessoryInformation();
-	
+
 	informationService
       .setCharacteristic(Characteristic.Manufacturer, "SmartHome")
       .setCharacteristic(Characteristic.Model, this.device.deviceFriendlyName)
-      .setCharacteristic(Characteristic.SerialNumber, this.device.address);	
-	  
+      .setCharacteristic(Characteristic.SerialNumber, this.device.address);
+
 	var lockMechanismService = new Service.LockMechanism();
-	
+
 	this.lockService = lockMechanismService;
-	this.informationService = informationService;	
-    
+	this.informationService = informationService;
+
     lockMechanismService
       .getCharacteristic(Characteristic.LockTargetState)
       .on('set', this.setTargetLockState.bind(this));
-	  
+
 	lockMechanismService
 	  .getCharacteristic(Characteristic.LockTargetState)
 	  .on('get', this.getTargetLockState.bind(this));
-	  
+
 	lockMechanismService
 	  .getCharacteristic(Characteristic.LockCurrentState)
 	  .on('get', this.getLockCurrentState.bind(this));
-    
-    return [informationService, lockMechanismService];	
+
+    return [informationService, lockMechanismService];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // LIGHTS
 // Implements the Light service for homekit based on an underlying isy-js device. Is dimmable or not depending
-// on if the underlying device is dimmable. 
+// on if the underlying device is dimmable.
 
 // Constructs the light accessory. log = homebridge logger, device = isy-js device object being wrapped
 function ISYLightAccessory(log,device) {
@@ -529,19 +529,24 @@ ISYLightAccessory.prototype.identify = function(callback) {
 	var that = this;
 	this.device.sendLightCommand(true, function(result) {
 		that.device.sendLightCommand(false, function(result) {
-			callback();			
-		});		
+			callback();
+		});
 	});
 }
 
-// Handles request to set the current powerstate from homekit. Will ignore redundant commands. 
+// Handles request to set the current powerstate from homekit. Will ignore redundant commands.
 ISYLightAccessory.prototype.setPowerState = function(powerOn,callback) {
 	this.log("LIGHT: "+this.device.name+" Setting powerstate to "+powerOn);
 	if(powerOn != this.device.getCurrentLightState()) {
-		this.log("LIGHT: "+this.device.name+" Changing powerstate to "+powerOn);
-		this.device.sendLightCommand(powerOn, function(result) {
+		if (!powerOn || !this.dimmable) {
+			this.log("LIGHT: "+this.device.name+" Changing powerstate to "+powerOn);
+			this.device.sendLightCommand(powerOn, function(result) {
+				callback();
+			});
+		} else {
+			this.log("LIGHT: "+this.device.name+" Ignoring redundant setPowerState to true for dimming lights");
 			callback();
-		});
+		}
 	} else {
 		this.log("LIGHT: "+this.device.name+" Ignoring redundant setPowerState");
 		callback();
@@ -560,11 +565,11 @@ ISYLightAccessory.prototype.handleExternalChange = function() {
 }
 
 // Handles request to get the current on state
-ISYLightAccessory.prototype.getPowerState = function(callback) { 
+ISYLightAccessory.prototype.getPowerState = function(callback) {
 	callback(null,this.device.getCurrentLightState());
 }
 
-// Handles request to set the brightness level of dimmable lights. Ignore redundant commands. 
+// Handles request to set the brightness level of dimmable lights. Ignore redundant commands.
 ISYLightAccessory.prototype.setBrightness = function(level,callback) {
 	this.log("LIGHT: "+this.device.name+" Setting brightness to "+level);
 	if(level != this.device.getCurrentLightDimState()) {
@@ -593,36 +598,36 @@ ISYLightAccessory.prototype.getBrightness = function(callback) {
 // Returns the set of services supported by this object.
 ISYLightAccessory.prototype.getServices = function() {
 	var informationService = new Service.AccessoryInformation();
-	
+
 	informationService
       .setCharacteristic(Characteristic.Manufacturer, "SmartHome")
       .setCharacteristic(Characteristic.Model, this.device.deviceFriendlyName)
-      .setCharacteristic(Characteristic.SerialNumber, this.device.address);	
-	  
+      .setCharacteristic(Characteristic.SerialNumber, this.device.address);
+
 	var lightBulbService = new Service.Lightbulb();
-	
+
 	this.informationService = informationService;
-	this.lightService = lightBulbService; 	
-	
+	this.lightService = lightBulbService;
+
     lightBulbService
       .getCharacteristic(Characteristic.On)
       .on('set', this.setPowerState.bind(this));
-	  
+
 	lightBulbService
 	  .getCharacteristic(Characteristic.On)
 	  .on('get', this.getPowerState.bind(this));
-	  
+
 	if(this.dimmable) {
 		lightBulbService
 		.addCharacteristic(Characteristic.Brightness)
 		.on('get', this.getBrightness.bind(this));
-		
+
 		lightBulbService
-		.getCharacteristic(Characteristic.Brightness)	  
+		.getCharacteristic(Characteristic.Brightness)
 		.on('set', this.setBrightness.bind(this));
 	}
-	  
-    return [informationService, lightBulbService];	
+
+    return [informationService, lightBulbService];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -720,7 +725,7 @@ ISYDoorWindowSensorAccessory.prototype.identify = function(callback) {
 
 // Translates the state of the underlying device object into the corresponding homekit compatible state
 ISYDoorWindowSensorAccessory.prototype.translateCurrentDoorWindowState = function() {
-	return (this.device.getCurrentDoorWindowState()) ? Characteristic.ContactSensorState.CONTACT_NOT_DETECTED : Characteristic.ContactSensorState.CONTACT_DETECTED;	
+	return (this.device.getCurrentDoorWindowState()) ? Characteristic.ContactSensorState.CONTACT_NOT_DETECTED : Characteristic.ContactSensorState.CONTACT_DETECTED;
 }
 
 // Handles the request to get he current door window state.
@@ -737,22 +742,22 @@ ISYDoorWindowSensorAccessory.prototype.handleExternalChange = function() {
 // Returns the set of services supported by this object.
 ISYDoorWindowSensorAccessory.prototype.getServices = function() {
 	var informationService = new Service.AccessoryInformation();
-	
+
 	informationService
       .setCharacteristic(Characteristic.Manufacturer, "SmartHome")
       .setCharacteristic(Characteristic.Model, this.device.deviceFriendlyName)
-      .setCharacteristic(Characteristic.SerialNumber, this.device.address);	
-	  
+      .setCharacteristic(Characteristic.SerialNumber, this.device.address);
+
 	var sensorService = new Service.ContactSensor();
-	
+
 	this.sensorService = sensorService;
-	this.informationService = informationService;	
-    
+	this.informationService = informationService;
+
     sensorService
       .getCharacteristic(Characteristic.ContactSensorState)
       .on('get', this.getCurrentDoorWindowState.bind(this));
-    
-    return [informationService, sensorService];	
+
+    return [informationService, sensorService];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -784,22 +789,22 @@ ISYMotionSensorAccessory.prototype.handleExternalChange = function() {
 // Returns the set of services supported by this object.
 ISYMotionSensorAccessory.prototype.getServices = function() {
 	var informationService = new Service.AccessoryInformation();
-	
+
     informationService
       .setCharacteristic(Characteristic.Manufacturer, "SmartHome")
       .setCharacteristic(Characteristic.Model, this.device.deviceFriendlyName)
-      .setCharacteristic(Characteristic.SerialNumber, this.device.address);	
-	  
+      .setCharacteristic(Characteristic.SerialNumber, this.device.address);
+
     var sensorService = new Service.MotionSensor();
-	
+
     this.sensorService = sensorService;
-    this.informationService = informationService;	
-    
+    this.informationService = informationService;
+
     sensorService
       .getCharacteristic(Characteristic.MotionDetected)
       .on('get', this.getCurrentMotionSensorState.bind(this));
-    
-    return [informationService, sensorService];	
+
+    return [informationService, sensorService];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -823,7 +828,7 @@ ISYElkAlarmPanelAccessory.prototype.setAlarmTargetState = function(targetStateHK
 	this.log("ALARMSYSTEM: "+this.device.name+" Would send the target state of: "+targetState);
 	if(this.device.getAlarmMode() != targetState) {
 		this.device.sendSetAlarmModeCommand(targetState, function(result) {
-			callback();		
+			callback();
 		});
 	} else {
 		this.log("ALARMSYSTEM: "+this.device.name+" Redundant command, already in that state.");
@@ -833,19 +838,19 @@ ISYElkAlarmPanelAccessory.prototype.setAlarmTargetState = function(targetStateHK
 
 // Translates from the current state of the elk alarm system into a homekit compatible state. The elk panel has a lot more
 // possible states then can be directly represented by homekit so we map them. If the alarm is going off then it is tripped.
-// If it is arming or armed it is considered armed. Stay maps to the state state, away to the away state, night to the night 
-// state. 
+// If it is arming or armed it is considered armed. Stay maps to the state state, away to the away state, night to the night
+// state.
 ISYElkAlarmPanelAccessory.prototype.translateAlarmCurrentStateToHK = function() {
 	var tripState = this.device.getAlarmTripState();
 	var sourceAlarmState = this.device.getAlarmState();
 	var sourceAlarmMode = this.device.getAlarmMode();
-	
+
 	if(tripState >= this.device.ALARM_TRIP_STATE_TRIPPED) {
-		return Characteristic.SecuritySystemCurrentState.ALARM_TRIGGERED;		
-	} else if(sourceAlarmState == this.device.ALARM_STATE_NOT_READY_TO_ARM || 
-	    sourceAlarmState == this.device.ALARM_STATE_READY_TO_ARM || 
+		return Characteristic.SecuritySystemCurrentState.ALARM_TRIGGERED;
+	} else if(sourceAlarmState == this.device.ALARM_STATE_NOT_READY_TO_ARM ||
+	    sourceAlarmState == this.device.ALARM_STATE_READY_TO_ARM ||
 	    sourceAlarmState == this.device.ALARM_STATE_READY_TO_ARM_VIOLATION) {
-		return Characteristic.SecuritySystemCurrentState.DISARMED;	   
+		return Characteristic.SecuritySystemCurrentState.DISARMED;
 	} else {
 		if(sourceAlarmMode == this.device.ALARM_MODE_STAY || sourceAlarmMode == this.device.ALARM_MODE_STAY_INSTANT ) {
 			return Characteristic.SecuritySystemCurrentState.STAY_ARM;
@@ -910,30 +915,30 @@ ISYElkAlarmPanelAccessory.prototype.handleExternalChange = function() {
 // Returns the set of services supported by this object.
 ISYElkAlarmPanelAccessory.prototype.getServices = function() {
 	var informationService = new Service.AccessoryInformation();
-	
+
 	informationService
       .setCharacteristic(Characteristic.Manufacturer, "SmartHome")
       .setCharacteristic(Characteristic.Model, this.device.deviceFriendlyName)
-      .setCharacteristic(Characteristic.SerialNumber, this.device.address);	
-	  
+      .setCharacteristic(Characteristic.SerialNumber, this.device.address);
+
 	var alarmPanelService = new Service.SecuritySystem();
-	
+
 	this.alarmPanelService = alarmPanelService;
-	this.informationService = informationService;	
-    
+	this.informationService = informationService;
+
     alarmPanelService
       .getCharacteristic(Characteristic.SecuritySystemTargetState)
       .on('set', this.setAlarmTargetState.bind(this));
-	  
+
 	alarmPanelService
 	  .getCharacteristic(Characteristic.SecuritySystemTargetState)
 	  .on('get', this.getAlarmTargetState.bind(this));
-	  
+
 	alarmPanelService
 	  .getCharacteristic(Characteristic.SecuritySystemCurrentState)
 	  .on('get', this.getAlarmCurrentState.bind(this));
-    
-    return [informationService, alarmPanelService];	
+
+    return [informationService, alarmPanelService];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
